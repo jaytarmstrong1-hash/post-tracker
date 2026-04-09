@@ -1,81 +1,780 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Post Tracker</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<meta charset="UTF-8">
+<title>PostPulse v1.0 - by Jay Armstrong</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; color: #1a1a1a; min-height: 100vh; }
+
+.header { background: #fff; border-bottom: 1px solid #e5e5e2; padding: 1.25rem 2rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.brand { font-size: 18px; font-weight: 500; }
+.brand-sub { font-size: 13px; color: #888; margin-top: 2px; }
+.header-right { display: flex; align-items: center; gap: 2rem; }
+.clock-block { text-align: right; }
+.clock { font-size: 26px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: 0.05em; color: #1a1a1a; }
+.clock-date { font-size: 12px; color: #aaa; margin-top: 2px; }
+.header-btns { display: flex; gap: 8px; align-items: center; }
+.save-notice { font-size: 12px; color: #aaa; margin-right: 4px; }
+
+.container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+
+.form-card { background: #fff; border: 1px solid #e5e5e2; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+.form-title { font-size: 11px; font-weight: 500; color: #888; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 1rem; }
+.form-grid { display: grid; grid-template-columns: 2.2fr 0.9fr 0.9fr 0.9fr 0.9fr auto; gap: 12px; align-items: end; }
+.field label { font-size: 12px; color: #666; display: block; margin-bottom: 5px; }
+.field input { display: block; width: 100%; padding: 10px 12px; font-size: 14px; border: 1px solid #ddd; border-radius: 8px; background: #fff; color: #1a1a1a; outline: none; }
+.field input:focus { border-color: #555; }
+
+button { cursor: pointer; border-radius: 8px; font-size: 14px; transition: all 0.12s; }
+.btn-primary { background: #1a1a1a; color: #fff; border: 1px solid #1a1a1a; padding: 10px 22px; }
+.btn-primary:hover { background: #333; }
+.btn-secondary { background: #fff; color: #444; border: 1px solid #ddd; padding: 9px 16px; }
+.btn-secondary:hover { background: #f5f5f3; }
+
+.metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+.metric { background: #fff; border: 1px solid #e5e5e2; border-radius: 10px; padding: 1.1rem 1.25rem; }
+.metric-label { font-size: 11px; color: #888; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 8px; }
+.metric-value { font-size: 26px; font-weight: 500; color: #1a1a1a; }
+.metric-sub { font-size: 11px; color: #bbb; margin-top: 3px; }
+
+.log-card { background: #fff; border: 1px solid #e5e5e2; border-radius: 12px; overflow: hidden; }
+.log-head { padding: 1rem 1.5rem; border-bottom: 1px solid #e5e5e2; display: flex; justify-content: space-between; align-items: center; }
+.log-head-title { font-size: 14px; font-weight: 500; }
+.log-count { font-size: 12px; color: #aaa; }
+
+.table-scroll { overflow-x: auto; width: 100%; }
+table { width: 100%; min-width: 1100px; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+thead { background: #fafafa; }
+th { text-align: left; padding: 10px 10px; font-size: 10px; font-weight: 500; color: #888; border-bottom: 1px solid #e5e5e2; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
+td { padding: 11px 10px; border-bottom: 1px solid #f0f0ee; vertical-align: middle; white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+tr.data-row:hover td { background: #fafaf8; }
+.empty-row td { text-align: center; padding: 4rem; color: #aaa; font-size: 14px; white-space: normal; }
+
+.badge { display: inline-block; font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+.badge-good { background: #eaf3de; color: #3b6d11; }
+.badge-ok   { background: #faeeda; color: #854f0b; }
+.badge-low  { background: #fcebeb; color: #a32d2d; }
+
+.topic-cell { font-weight: 500; }
+.muted { color: #999; font-variant-numeric: tabular-nums; }
+.trend-up   { color: #3b6d11; font-size: 10px; margin-left: 3px; }
+.trend-down { color: #a32d2d; font-size: 10px; margin-left: 3px; }
+.best-row td { background: #f4faea !important; }
+
+.del-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 5px; border-radius: 4px; }
+.del-btn:hover { color: #e24b4a; background: #fcebeb; }
+
+.chart-card { background: #fff; border: 1px solid #e5e5e2; border-radius: 12px; padding: 1.5rem; margin-top: 1.5rem; }
+.chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+.chart-title { font-size: 14px; font-weight: 500; }
+.chart-tabs { display: flex; gap: 6px; }
+.chart-tab { font-size: 12px; padding: 5px 12px; border-radius: 20px; border: 1px solid #ddd; background: #fff; color: #666; cursor: pointer; }
+.chart-tab.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+.chart-wrap { position: relative; height: 220px; }
+.chart-legend { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #666; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.chart-empty { text-align: center; padding: 3rem; color: #aaa; font-size: 14px; }
+
+.reg-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10,10,10,0.92); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+.reg-box { background: #fff; border-radius: 16px; padding: 2.5rem; width: 440px; max-width: 95vw; }
+.reg-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; }
+.reg-logo-icon { width: 42px; height: 42px; background: #1a1a1a; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+.reg-logo-name { font-size: 24px; font-weight: 600; color: #1a1a1a; letter-spacing: -0.3px; }
+.reg-logo-name span { color: #2d7dd2; }
+.reg-logo-ver { font-size: 11px; color: #aaa; margin-top: 1px; }
+.reg-title { font-size: 16px; font-weight: 500; color: #1a1a1a; margin-bottom: 6px; }
+.reg-sub { font-size: 13px; color: #888; margin-bottom: 1.5rem; line-height: 1.5; }
+.reg-field { margin-bottom: 12px; }
+.reg-field label { font-size: 12px; color: #666; display: block; margin-bottom: 5px; }
+.reg-field input { width: 100%; padding: 10px 12px; font-size: 14px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; color: #1a1a1a; outline: none; }
+.reg-field input:focus { border-color: #2d7dd2; background: #fff; }
+.reg-btn { width: 100%; padding: 12px; background: #1a1a1a; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; margin-top: 8px; }
+.reg-btn:hover { background: #333; }
+.reg-copy { font-size: 11px; color: #bbb; text-align: center; margin-top: 14px; line-height: 1.5; }
+
+.pp-logo { display: flex; align-items: center; gap: 10px; }
+.pp-icon { width: 34px; height: 34px; background: #1a1a1a; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.pp-name { font-size: 20px; font-weight: 600; color: #1a1a1a; letter-spacing: -0.3px; }
+.pp-name span { color: #2d7dd2; }
+.pp-tagline { font-size: 11px; color: #aaa; margin-top: 1px; }
+.pp-version { font-size: 11px; color: #bbb; background: #f0f0ee; padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
+</style>
 </head>
+<body>
 
-<body style="font-family: Arial; padding:20px; max-width:600px;">
+<div id="reg-overlay" class="reg-overlay">
+  <div class="reg-box">
+    <div class="reg-logo">
+      <div class="reg-logo-icon">
+        <svg width="22" height="22" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <polyline points="3,20 9,12 14,15 20,7 25,10" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="25" cy="10" r="2.5" fill="#fff"/>
+        </svg>
+      </div>
+      <div>
+        <div class="reg-logo-name">Post<span>Pulse</span></div>
+        <div class="reg-logo-ver">v1.0 - Licensed software</div>
+      </div>
+    </div>
+    <div class="reg-title">Register your copy</div>
+    <div class="reg-sub">Enter your details to activate PostPulse. Your registration is logged with Jay Armstrong / Cryokinetics. One license per user.</div>
+    <div class="reg-field">
+      <label for="reg-name">Full name</label>
+      <input id="reg-name" type="text" placeholder="Your full name" />
+    </div>
+    <div class="reg-field">
+      <label for="reg-email">Email address</label>
+      <input id="reg-email" type="email" placeholder="your@email.com" />
+    </div>
+    <div class="reg-field">
+      <label for="reg-org">Company / LinkedIn handle (optional)</label>
+      <input id="reg-org" type="text" placeholder="Acme Inc. or @yourhandle" />
+    </div>
+    <button class="reg-btn" onclick="activateProduct()">Activate PostPulse</button>
+    <div class="reg-copy">Copyright &copy; 2026 Jay Armstrong &middot; Cryokinetics. All rights reserved.<br>Unauthorized redistribution prohibited. Licensed for single-user use only.</div>
+  </div>
+</div>
 
-<h2>Post Performance Tracker</h2>
+<div class="header">
+  <div class="pp-logo">
+    <div class="pp-icon">
+      <svg width="20" height="20" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polyline points="3,20 9,12 14,15 20,7 25,10" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="25" cy="10" r="2.5" fill="#fff"/>
+      </svg>
+    </div>
+    <div>
+      <div class="pp-name">Post<span>Pulse</span> <span class="pp-version">v1.0</span></div>
+      <div class="pp-tagline">Know if your post is alive or flatlining - in real time.</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="clock-block">
+      <div class="clock" id="clock">00:00:00</div>
+      <div class="clock-date" id="clock-date">-</div>
+    </div>
+    <div class="header-btns">
+      <span class="save-notice" id="save-notice">Auto-saves in browser</span>
+      <div id="reg-status-box" style="text-align:center; line-height:1.4;">
+        <div id="reg-status-badge" style="font-size:12px; font-weight:500; color:#a32d2d; background:#fcebeb; padding:3px 10px; border-radius:20px; display:inline-block;">Unregistered copy</div>
+        <div id="reg-status-sub" style="font-size:11px; color:#aaa; margin-top:3px;">Click to register and activate PostPulse</div>
+        <div id="reg-status-num" style="font-size:10px; color:#bbb; margin-top:2px; font-variant-numeric:tabular-nums; display:none;"></div>
+      </div>
+      <button class="btn-secondary" onclick="exportCSV()">Export CSV</button>
+      <button class="btn-secondary" onclick="clearAll()">Clear all</button>
+    </div>
+  </div>
+</div>
 
-<label>Previous Impressions</label><br>
-<input id="prevImp" type="number"><br><br>
+<div style="background:#1a1a1a; color:#aaa; font-size:11px; text-align:center; padding:8px; letter-spacing:0.03em;">
+  PostPulse v1.0 &nbsp;&middot;&nbsp; Copyright &copy; 2026 Jay Armstrong &middot; Cryokinetics &nbsp;&middot;&nbsp; All rights reserved &nbsp;&middot;&nbsp; Unauthorized redistribution prohibited
+</div>
 
-<label>Current Impressions</label><br>
-<input id="currImp" type="number"><br><br>
+<div class="container">
 
-<label>Minutes Between Checks</label><br>
-<input id="minutes" type="number"><br><br>
+  <div class="form-card">
+    <div class="form-title">Log a post</div>
+    <div class="form-grid">
+      <div class="field">
+        <label for="f-topic-select">Post topic</label>
+        <select id="f-topic-select" onchange="handleTopicSelect(this)" style="display:block; width:100%; padding:10px 12px; font-size:14px; border:1px solid #ddd; border-radius:8px; background:#fff; color:#1a1a1a; outline:none;">
+          <option value="__new__">+ Add new post topic</option>
+        </select>
+        <input id="f-topic" type="text" placeholder="Type new post topic here..." style="display:block; margin-top:6px; width:100%; padding:10px 12px; font-size:14px; border:1px solid #2d7dd2; border-radius:8px; background:#fff; color:#1a1a1a; outline:none;" />
+      </div>
+      <div class="field">
+        <label for="f-date">Date</label>
+        <input id="f-date" type="date" />
+      </div>
+      <div class="field">
+        <label for="f-time">Time logged (hh:mm:ss)</label>
+        <input id="f-time" type="text" placeholder="00:00:00" maxlength="8" style="font-variant-numeric:tabular-nums; letter-spacing:0.05em;" onfocus="if(!this.value) autoFillTime()" />
+      </div>
+      <div class="field">
+        <label for="f-impressions">Impressions</label>
+        <input id="f-impressions" type="number" placeholder="0" min="0" step="1" value="0" />
+      </div>
+      <div class="field">
+        <label for="f-reactions">Reactions / comments</label>
+        <input id="f-reactions" type="number" placeholder="0" min="0" step="1" />
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="btn-primary" onclick="addEntry()">Log post</button>
+      </div>
+    </div>
+  </div>
 
-<button onclick="calc()">Calculate</button>
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label">Posts logged</div>
+      <div class="metric-value" id="m-posts">0</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Total impressions</div>
+      <div class="metric-value" id="m-total">-</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Avg imp / hour</div>
+      <div class="metric-value" id="m-iph">-</div>
+      <div class="metric-sub">higher = better</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Avg min / impression</div>
+      <div class="metric-value" id="m-mpi">-</div>
+      <div class="metric-sub">lower = better</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Best post</div>
+      <div class="metric-value" style="font-size:13px; padding-top:6px; line-height:1.4;" id="m-best">-</div>
+    </div>
+  </div>
 
-<h3 id="results"></h3>
+  <div class="log-card">
+    <div class="log-head">
+      <span class="log-head-title">Post log</span>
+      <span class="log-count" id="log-count">0 posts</span>
+    </div>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:22%">Topic</th>
+          <th style="width:7%">Date</th>
+          <th style="width:8%">Logged at</th>
+          <th style="width:6%">Hours</th>
+          <th style="width:9%">Impressions</th>
+          <th style="width:8%">Reactions</th>
+          <th style="width:8%">Imp / hr</th>
+          <th style="width:8%">Min / imp</th>
+          <th style="width:9%">Proj 24h</th>
+          <th style="width:8%">Rating</th>
+          <th style="width:4%"></th>
+        </tr>
+      </thead>
+      <tbody id="log-body"></tbody>
+    </table>
+    </div>
+  </div>
 
-<canvas id="chart" height="120"></canvas>
+  <div class="chart-card">
+    <div class="chart-header">
+      <span class="chart-title">Performance graph — all posts</span>
+      <div class="chart-tabs">
+        <button class="chart-tab active" onclick="setChartMode('impressions',this)">Impressions</button>
+        <button class="chart-tab" onclick="setChartMode('iph',this)">Imp / hr</button>
+        <button class="chart-tab" onclick="setChartMode('proj24',this)">Proj 24h</button>
+        <button class="chart-tab" onclick="setChartMode('reactions',this)">Reactions</button>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="perf-chart"></canvas>
+    </div>
+    <div class="chart-legend" id="chart-legend"></div>
+  </div>
+
+  <div id="topic-charts"></div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
 <script>
-let dataPoints = [];
-let chart;
+function handleTopicSelect(sel) {
+  var input = document.getElementById('f-topic');
+  if (sel.value === '__new__') {
+    input.style.display = 'block';
+    input.value = '';
+  } else {
+    input.style.display = 'none';
+    input.value = sel.value;
+  }
+}
 
-function calc() {
-  let prevImp = Number(document.getElementById("prevImp").value);
-  let currImp = Number(document.getElementById("currImp").value);
-  let minutes = Number(document.getElementById("minutes").value);
+function updateTopicDropdown() {
+  var sel = document.getElementById('f-topic-select');
+  var input = document.getElementById('f-topic');
+  if (!sel) return;
+  var topics = [];
+  entries.forEach(function(e) {
+    if (topics.indexOf(e.topic) === -1) topics.push(e.topic);
+  });
+  var current = sel.value;
+  sel.innerHTML = '<option value="__new__">+ Add new post topic</option>';
+  topics.forEach(function(t) {
+    var opt = document.createElement('option');
+    opt.value = t;
+    opt.textContent = t.length > 50 ? t.slice(0,50)+'…' : t;
+    sel.appendChild(opt);
+  });
+  if (topics.length === 0) {
+    input.style.display = 'block';
+    sel.value = '__new__';
+  } else if (current && current !== '__new__' && topics.indexOf(current) !== -1) {
+    sel.value = current;
+    input.style.display = 'none';
+    input.value = current;
+  } else {
+    sel.value = '__new__';
+    input.style.display = 'block';
+    input.value = '';
+  }
+}
 
-  if (currImp <= prevImp || minutes <= 0) {
-    alert("Check inputs");
+var entries = [];
+try { entries = JSON.parse(localStorage.getItem('jay_li_tracker') || '[]'); } catch(e) { entries = []; }
+
+function activateProduct() {
+  var name  = document.getElementById('reg-name').value.trim();
+  var email = document.getElementById('reg-email').value.trim();
+  var org   = document.getElementById('reg-org').value.trim();
+  if (!name)  { alert('Please enter your full name.'); document.getElementById('reg-name').focus(); return; }
+  if (!email || email.indexOf('@') === -1) { alert('Please enter a valid email address.'); document.getElementById('reg-email').focus(); return; }
+  var reg = { name: name, email: email, org: org, date: new Date().toISOString(), version: '1.0' };
+  try { localStorage.setItem('postpulse_reg', JSON.stringify(reg)); } catch(e){}
+  document.getElementById('reg-overlay').style.display = 'none';
+  setRegStatus(name, true, reg.date);
+}
+
+function makeRegNumber(name, email, dateStr) {
+  var raw = name.toUpperCase().replace(/\s/g,'').slice(0,3) + email.replace(/\W/g,'').slice(0,4).toUpperCase();
+  var d = new Date(dateStr);
+  var yr = d.getFullYear() || 2026;
+  var mo = String(d.getMonth()+1).padStart(2,'0');
+  var dy = String(d.getDate()).padStart(2,'0');
+  var seed = 0;
+  for (var i=0; i<raw.length; i++) seed = ((seed * 31) + raw.charCodeAt(i)) & 0xFFFFFF;
+  return 'PP-' + yr + mo + dy + '-' + String(seed).padStart(6,'0').slice(0,6);
+}
+
+function setRegStatus(name, registered, regDate) {
+  var badge  = document.getElementById('reg-status-badge');
+  var sub    = document.getElementById('reg-status-sub');
+  var numEl  = document.getElementById('reg-status-num');
+  if (registered) {
+    badge.textContent = 'Registered copy';
+    badge.style.color = '#3b6d11';
+    badge.style.background = '#eaf3de';
+    badge.style.cursor = 'default';
+    sub.textContent = 'Licensed to ' + name + ' · PostPulse v1.0';
+    sub.style.cursor = 'default';
+    badge.onclick = null;
+    sub.onclick = null;
+    var regNum = makeRegNumber(name, '', regDate || new Date().toISOString());
+    numEl.textContent = 'Reg # ' + regNum + ' · Support: customerservice@cryokinetics.org';
+    numEl.style.display = 'block';
+  } else {
+    badge.textContent = 'Unregistered copy';
+    badge.style.color = '#a32d2d';
+    badge.style.background = '#fcebeb';
+    badge.style.cursor = 'pointer';
+    sub.textContent = 'Click to register and activate PostPulse';
+    sub.style.cursor = 'pointer';
+    numEl.style.display = 'none';
+    badge.onclick = function(){ document.getElementById('reg-overlay').style.display = 'flex'; };
+    sub.onclick   = function(){ document.getElementById('reg-overlay').style.display = 'flex'; };
+  }
+}
+
+function checkRegistration() {
+  try {
+    var reg = JSON.parse(localStorage.getItem('postpulse_reg') || 'null');
+    if (reg && reg.name && reg.email) {
+      document.getElementById('reg-overlay').style.display = 'none';
+      setRegStatus(reg.name, true, reg.date);
+    } else {
+      setRegStatus('', false);
+    }
+  } catch(e) { setRegStatus('', false); }
+}
+checkRegistration();
+
+function tickClock() {
+  var now = new Date();
+  var pad = function(n){ return String(n).padStart(2,'0'); };
+  document.getElementById('clock').textContent = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+  var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('clock-date').textContent = days[now.getDay()] + ', ' + months[now.getMonth()] + ' ' + now.getDate() + ' ' + now.getFullYear();
+}
+tickClock();
+setInterval(tickClock, 1000);
+
+function save() {
+  try { localStorage.setItem('jay_li_tracker', JSON.stringify(entries)); } catch(e){}
+  document.getElementById('save-notice').textContent = 'Saved at ' + new Date().toLocaleTimeString();
+}
+
+function autoFillTime() {
+  var now = new Date();
+  var pad = function(n){ return String(n).padStart(2,'0'); };
+  document.getElementById('f-time').value = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+}
+
+function autoFillDate() {
+  var now = new Date();
+  var y = now.getFullYear();
+  var m = String(now.getMonth()+1).padStart(2,'0');
+  var d = String(now.getDate()).padStart(2,'0');
+  document.getElementById('f-date').value = y + '-' + m + '-' + d;
+}
+autoFillDate();
+
+function parseTimeToHours(timeStr) {
+  var parts = timeStr.split(':');
+  if (parts.length < 2) return null;
+  var h = parseInt(parts[0], 10);
+  var m = parseInt(parts[1], 10);
+  var s = parts[2] ? parseInt(parts[2], 10) : 0;
+  if (isNaN(h) || isNaN(m) || isNaN(s)) return null;
+  return h + (m / 60) + (s / 3600);
+}
+
+function addEntry() {
+  var sel      = document.getElementById('f-topic-select');
+  var topicInput = document.getElementById('f-topic');
+  var topic    = sel.value === '__new__' ? topicInput.value.trim() : sel.value.trim();
+  var dateVal  = document.getElementById('f-date').value.trim();
+  var timeVal  = document.getElementById('f-time').value.trim();
+  var impRaw   = document.getElementById('f-impressions').value.trim();
+  var reactRaw = document.getElementById('f-reactions').value.trim();
+
+  if (!topic)   { alert('Please enter or select a post topic.'); return; }
+  if (!timeVal) { alert('Please enter the time (hh:mm:ss).'); document.getElementById('f-time').focus(); return; }
+  if (!impRaw)  { alert('Please enter impressions.'); document.getElementById('f-impressions').focus(); return; }
+
+  var impressions = parseInt(impRaw, 10);
+  var reactions   = parseInt(reactRaw, 10) || 0;
+  if (isNaN(impressions) || impressions < 0) { alert('Impressions must be 0 or more.'); return; }
+
+  var topicEntries = entries.filter(function(e){ return e.topic.trim() === topic; });
+  var hours;
+  if (topicEntries.length === 0) {
+    hours = 0.01;
+  } else {
+    var firstTime = topicEntries[0].timestamp;
+    var fp = firstTime ? firstTime.split(':') : null;
+    var tp = timeVal.split(':');
+    if (fp && fp.length >= 2 && tp.length >= 2) {
+      var fh = parseInt(fp[0],10)*3600 + parseInt(fp[1],10)*60 + (fp[2]?parseInt(fp[2],10):0);
+      var th = parseInt(tp[0],10)*3600 + parseInt(tp[1],10)*60 + (tp[2]?parseInt(tp[2],10):0);
+      var diff = (th - fh) / 3600;
+      hours = diff > 0 ? parseFloat(diff.toFixed(4)) : 0.01;
+    } else {
+      hours = parseTimeToHours(timeVal) || 0.01;
+    }
+  }
+
+  document.getElementById('f-date').value = '';
+  document.getElementById('f-time').value = '';
+  document.getElementById('f-impressions').value = '';
+  document.getElementById('f-reactions').value = '';
+
+  entries.push({ topic: topic, date: dateVal || '-', hours: hours, impressions: impressions, reactions: reactions, timestamp: timeVal });
+
+  save();
+  render();
+  updateTopicDropdown();
+  sel.value = topic;
+  handleTopicSelect(sel);
+}
+
+function deleteEntry(i) {
+  if (!confirm('Delete this entry?')) return;
+  entries.splice(i, 1);
+  save();
+  render();
+}
+
+function clearAll() {
+  if (!confirm('Clear all entries? This cannot be undone.')) return;
+  entries = [];
+  save();
+  render();
+}
+
+function exportCSV() {
+  if (entries.length === 0) { alert('No data to export yet.'); return; }
+  var lines = ['Topic,Date,Logged at,Hours,Impressions,Reactions,Imp per Hr,Min per Imp,Proj 24h'];
+  entries.forEach(function(e) {
+    var iph = e.impressions / e.hours;
+    lines.push(['"' + e.topic.replace(/"/g,'""') + '"', e.date, e.timestamp || '-', e.hours, e.impressions, e.reactions, iph.toFixed(1), Math.round((e.hours*60)/e.impressions), Math.round(iph*24)].join(','));
+  });
+  var blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'linkedin_tracker.csv';
+  a.click();
+}
+
+function badge(iph) {
+  if (iph >= 20) return '<span class="badge badge-good">strong</span>';
+  if (iph >= 8)  return '<span class="badge badge-ok">ok</span>';
+  return '<span class="badge badge-low">low</span>';
+}
+
+function render() {
+  var tbody = document.getElementById('log-body');
+  document.getElementById('log-count').textContent = entries.length + ' post' + (entries.length !== 1 ? 's' : '');
+
+  if (entries.length === 0) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="11">No posts logged yet — fill in the form above and click Log post</td></tr>';
+    document.getElementById('m-posts').textContent = '0';
+    ['m-total','m-iph','m-mpi','m-best'].forEach(function(id){ document.getElementById(id).textContent = '-'; });
+    renderChart();
+    renderTopicCharts();
     return;
   }
 
-  let delta = currImp - prevImp;
+  var bestIph = Math.max.apply(null, entries.map(function(e){ return e.impressions / e.hours; }));
+  var html = '';
 
-  let impPerHour = (delta / minutes) * 60;
-  let minPerImp = minutes / delta;
+  entries.forEach(function(e, i) {
+    var iph = e.impressions / e.hours;
+    var mpi = (e.hours * 60) / e.impressions;
+    var proj24 = Math.round(iph * 24);
+    var trend = '';
+    if (i > 0) {
+      var prev = entries[i-1].impressions / entries[i-1].hours;
+      if (iph > prev) trend = '<span class="trend-up">▲</span>';
+      else if (iph < prev) trend = '<span class="trend-down">▼</span>';
+    }
+    html += '<tr class="data-row' + (iph === bestIph ? ' best-row' : '') + '">' +
+      '<td class="topic-cell">' + e.topic + '</td>' +
+      '<td class="muted">' + e.date + '</td>' +
+      '<td class="muted">' + (e.timestamp || '-') + '</td>' +
+      '<td>' + e.hours.toFixed(1) + 'h</td>' +
+      '<td>' + e.impressions.toLocaleString() + '</td>' +
+      '<td>' + e.reactions + '</td>' +
+      '<td>' + iph.toFixed(1) + trend + '</td>' +
+      '<td>' + Math.round(mpi) + ' min</td>' +
+      '<td style="font-weight:500; color:#2d7dd2;">' + proj24.toLocaleString() + '</td>' +
+      '<td>' + badge(iph) + '</td>' +
+      '<td><button class="del-btn" onclick="deleteEntry(' + i + ')">×</button></td>' +
+      '</tr>';
+  });
+  tbody.innerHTML = html;
 
-  dataPoints.push(minPerImp);
+  var total  = entries.reduce(function(s,e){ return s + e.impressions; }, 0);
+  var avgIph = entries.reduce(function(s,e){ return s + e.impressions/e.hours; }, 0) / entries.length;
+  var avgMpi = entries.reduce(function(s,e){ return s + (e.hours*60)/e.impressions; }, 0) / entries.length;
+  var best   = entries.reduce(function(a,b){ return (a.impressions/a.hours) >= (b.impressions/b.hours) ? a : b; });
 
-  document.getElementById("results").innerHTML =
-    "Imp/hr: " + impPerHour.toFixed(1) +
-    " | Min/Imp: " + minPerImp.toFixed(2);
+  document.getElementById('m-posts').textContent = entries.length;
+  document.getElementById('m-total').textContent = total.toLocaleString();
+  document.getElementById('m-iph').textContent   = avgIph.toFixed(1);
+  document.getElementById('m-mpi').textContent   = Math.round(avgMpi) + ' min';
+  document.getElementById('m-best').textContent  = best.topic.length > 24 ? best.topic.slice(0,24) + '…' : best.topic;
+  renderChart();
+  updateTopicDropdown();
+  renderTopicCharts();
+}
 
+var chartMode = 'impressions';
+var perfChart = null;
+
+var COLORS = [
+  '#1a1a1a','#2d7dd2','#3b6d11','#854f0b','#a32d2d',
+  '#5e3a8a','#0f6e56','#b8860b','#c04a4a','#3a5a8a'
+];
+
+function setChartMode(mode, btn) {
+  chartMode = mode;
+  document.querySelectorAll('.chart-tab').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
   renderChart();
 }
 
-function renderChart() {
-  if (chart) chart.destroy();
+function getTopicGroups() {
+  var groups = {};
+  entries.forEach(function(e) {
+    var key = e.topic.trim();
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(e);
+  });
+  return groups;
+}
 
-  chart = new Chart(document.getElementById("chart"), {
+function renderChart() {
+  var canvas = document.getElementById('perf-chart');
+  var legendEl = document.getElementById('chart-legend');
+
+  if (entries.length === 0) {
+    if (perfChart) { perfChart.destroy(); perfChart = null; }
+    canvas.style.display = 'none';
+    legendEl.innerHTML = '<p class="chart-empty">Log posts to see your performance graph</p>';
+    return;
+  }
+  canvas.style.display = 'block';
+
+  var groups = getTopicGroups();
+  var keys = Object.keys(groups);
+
+  var datasets = keys.map(function(key, ki) {
+    var grp = groups[key];
+    var color = COLORS[ki % COLORS.length];
+    var vals = grp.map(function(e) {
+      if (chartMode === 'impressions') return e.impressions;
+      if (chartMode === 'iph') return parseFloat((e.impressions / e.hours).toFixed(1));
+      if (chartMode === 'proj24') return Math.round((e.impressions / e.hours) * 24);
+      return e.reactions;
+    });
+    var labels = grp.map(function(e, i) { return e.timestamp || ('Entry ' + (i+1)); });
+    return {
+      label: key.length > 28 ? key.slice(0,28)+'…' : key,
+      data: vals,
+      xLabels: labels,
+      borderColor: color,
+      backgroundColor: color + '18',
+      borderWidth: 2,
+      pointBackgroundColor: color,
+      pointRadius: 5,
+      pointHoverRadius: 7,
+      tension: 0.35,
+      fill: true
+    };
+  });
+
+  var allLabels = [];
+  entries.forEach(function(e){ if (allLabels.indexOf(e.timestamp||'-') === -1) allLabels.push(e.timestamp||'-'); });
+  allLabels.sort();
+
+  var yLabel = chartMode === 'impressions' ? 'Impressions' : chartMode === 'iph' ? 'Imp / hr' : chartMode === 'proj24' ? 'Projected 24h impressions' : 'Reactions';
+
+  if (perfChart) { perfChart.destroy(); perfChart = null; }
+
+  perfChart = new Chart(canvas, {
     type: 'line',
-    data: {
-      labels: dataPoints.map((_, i) => "Log " + (i+1)),
-      datasets: [{
-        label: 'Min per Impression (lower = better)',
-        data: dataPoints,
-        tension: 0.2,
-        borderWidth: 2
-      }]
-    },
+    data: { labels: allLabels, datasets: datasets },
     options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1a1a1a',
+          titleColor: '#fff',
+          bodyColor: '#ddd',
+          padding: 10,
+          cornerRadius: 8
+        }
+      },
       scales: {
+        x: {
+          grid: { color: '#f0f0ee' },
+          ticks: { font: { size: 11 }, color: '#999' }
+        },
         y: {
-          reverse: true
+          beginAtZero: true,
+          grid: { color: '#f0f0ee' },
+          ticks: { font: { size: 11 }, color: '#999' },
+          title: { display: true, text: yLabel, font: { size: 11 }, color: '#aaa' }
         }
       }
     }
   });
-}
-</script>
 
+  legendEl.innerHTML = keys.map(function(key, ki) {
+    var color = COLORS[ki % COLORS.length];
+    var short = key.length > 32 ? key.slice(0,32)+'…' : key;
+    return '<div class="legend-item"><div class="legend-dot" style="background:'+color+'"></div><span>'+short+'</span></div>';
+  }).join('');
+}
+
+var topicCharts = {};
+
+function renderTopicCharts() {
+  var container = document.getElementById('topic-charts');
+  if (!container) return;
+
+  if (entries.length === 0) { container.innerHTML = ''; Object.keys(topicCharts).forEach(function(k){ if(topicCharts[k]){ topicCharts[k].destroy(); delete topicCharts[k]; } }); return; }
+
+  var groups = getTopicGroups();
+  var keys = Object.keys(groups);
+
+  var existingIds = [];
+  keys.forEach(function(key, ki) {
+    var id = 'tc-' + ki;
+    existingIds.push(id);
+    var grp = groups[key];
+    var color = COLORS[ki % COLORS.length];
+
+    var labels = grp.map(function(e, i) { return e.timestamp || ('Entry '+(i+1)); });
+    var impVals  = grp.map(function(e){ return e.impressions; });
+    var iphVals  = grp.map(function(e){ return parseFloat((e.impressions/e.hours).toFixed(1)); });
+    var p24Vals  = grp.map(function(e){ return Math.round((e.impressions/e.hours)*24); });
+
+    var lastIph  = iphVals[iphVals.length-1];
+    var lastP24  = p24Vals[p24Vals.length-1];
+    var lastImp  = impVals[impVals.length-1];
+    var trendDir = iphVals.length > 1 ? (lastIph > iphVals[iphVals.length-2] ? '▲ gaining' : lastIph < iphVals[iphVals.length-2] ? '▼ slowing' : '→ steady') : '—';
+    var trendCol = trendDir.indexOf('▲') > -1 ? '#3b6d11' : trendDir.indexOf('▼') > -1 ? '#a32d2d' : '#888';
+
+    if (!document.getElementById('canvas-'+id)) {
+      var card = document.createElement('div');
+      card.className = 'chart-card';
+      card.style.marginTop = '1.5rem';
+      card.id = 'card-'+id;
+      card.innerHTML =
+        '<div class="chart-header" style="flex-wrap:wrap; gap:8px;">' +
+          '<div>' +
+            '<div style="font-size:14px; font-weight:500; color:#1a1a1a; margin-bottom:4px;">' + (key.length > 60 ? key.slice(0,60)+'…' : key) + '</div>' +
+            '<div style="display:flex; gap:16px; font-size:12px;">' +
+              '<span style="color:#888;">Impressions: <strong style="color:#1a1a1a;" id="stat-imp-'+id+'">'+lastImp+'</strong></span>' +
+              '<span style="color:#888;">Imp/hr: <strong style="color:'+color+';" id="stat-iph-'+id+'">'+lastIph.toFixed(1)+'</strong></span>' +
+              '<span style="color:#888;">Proj 24h: <strong style="color:#2d7dd2;" id="stat-p24-'+id+'">'+lastP24.toLocaleString()+'</strong></span>' +
+              '<span style="color:#888;">Trend: <strong style="color:'+trendCol+';" id="stat-trend-'+id+'">'+trendDir+'</strong></span>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="chart-wrap" style="height:180px;"><canvas id="canvas-'+id+'"></canvas></div>';
+      container.appendChild(card);
+    } else {
+      document.getElementById('stat-imp-'+id).textContent = lastImp;
+      document.getElementById('stat-iph-'+id).textContent = lastIph.toFixed(1);
+      document.getElementById('stat-iph-'+id).style.color = color;
+      document.getElementById('stat-p24-'+id).textContent = lastP24.toLocaleString();
+      document.getElementById('stat-trend-'+id).textContent = trendDir;
+      document.getElementById('stat-trend-'+id).style.color = trendCol;
+    }
+
+    if (topicCharts[id]) { topicCharts[id].destroy(); }
+
+    topicCharts[id] = new Chart(document.getElementById('canvas-'+id), {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'Impressions', data: impVals, borderColor: color, backgroundColor: color+'15', borderWidth: 2, pointBackgroundColor: color, pointRadius: 4, pointHoverRadius: 6, tension: 0.35, fill: true, yAxisID: 'y' },
+          { label: 'Proj 24h', data: p24Vals, borderColor: '#2d7dd2', backgroundColor: 'transparent', borderWidth: 1.5, borderDash: [4,4], pointRadius: 3, tension: 0.35, fill: false, yAxisID: 'y2' }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: true, position: 'top', labels: { font: { size: 11 }, boxWidth: 12 } },
+          tooltip: { backgroundColor: '#1a1a1a', titleColor: '#fff', bodyColor: '#ddd', padding: 8, cornerRadius: 8 }
+        },
+        scales: {
+          x: { grid: { color: '#f0f0ee' }, ticks: { font: { size: 10 }, color: '#999' } },
+          y: { beginAtZero: false, grid: { color: '#f0f0ee' }, ticks: { font: { size: 10 }, color: '#999' }, title: { display: true, text: 'Impressions', font: { size: 10 }, color: '#aaa' } },
+          y2: { beginAtZero: false, position: 'right', grid: { drawOnChartArea: false }, ticks: { font: { size: 10 }, color: '#2d7dd2' }, title: { display: true, text: 'Proj 24h', font: { size: 10 }, color: '#2d7dd2' } }
+        }
+      }
+    });
+  });
+
+  Array.from(container.children).forEach(function(child) {
+    if (existingIds.indexOf(child.id.replace('card-','')) === -1) container.removeChild(child);
+  });
+}
+
+render();
+</script>
 </body>
 </html>
