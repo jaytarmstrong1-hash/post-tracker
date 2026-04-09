@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Post Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body style="font-family: Arial; padding:20px; max-width:600px;">
+
+<h2>Post Performance Tracker</h2>
+
+<label>Previous Impressions</label><br>
+<input id="prevImp" type="number"><br><br>
+
+<label>Current Impressions</label><br>
+<input id="currImp" type="number"><br><br>
+
+<label>Minutes Between Checks</label><br>
+<input id="minutes" type="number"><br><br>
+
+<button onclick="calc()">Calculate</button>
+
+<h3 id="results"></h3>
+
+<canvas id="chart" height="120"></canvas>
+
+<script>
+let dataPoints = [];
+let chart;
+
+function calc() {
+  let prevImp = Number(document.getElementById("prevImp").value);
+  let currImp = Number(document.getElementById("currImp").value);
+  let minutes = Number(document.getElementById("minutes").value);
+
+  if (currImp <= prevImp || minutes <= 0) {
+    alert("Check inputs");
+    return;
+  }
+
+  let delta = currImp - prevImp;
+
+  let impPerHour = (delta / minutes) * 60;
+  let minPerImp = minutes / delta;
+
+  dataPoints.push(minPerImp);
+
+  document.getElementById("results").innerHTML =
+    "Imp/hr: " + impPerHour.toFixed(1) +
+    " | Min/Imp: " + minPerImp.toFixed(2);
+
+  renderChart();
+}
+
+function renderChart() {
+  if (chart) chart.destroy();
+
+  chart = new Chart(document.getElementById("chart"), {
+    type: 'line',
+    data: {
+      labels: dataPoints.map((_, i) => "Log " + (i+1)),
+      datasets: [{
+        label: 'Min per Impression (lower = better)',
+        data: dataPoints,
+        tension: 0.2,
+        borderWidth: 2
+      }]
+    },
+    options: {
+      scales: {
+        y: {
+          reverse: true
+        }
+      }
+    }
+  });
+}
+</script>
+
+</body>
+</html>
